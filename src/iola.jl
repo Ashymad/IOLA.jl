@@ -1,4 +1,4 @@
-module iola
+module IOLA
 using Statistics
 
 export energyDiff, analyze
@@ -44,7 +44,7 @@ function energyDiff(signal::AbstractVector{SignalType}, transform::Function,
     for i = start_index:end_index
         arind = i-start_index+1
         segment = transform(signal[i:(i+segment_length-1)])
-        energies[arind] = mean(abs.(segment))
+        energies[arind] = sqrt(mean(segment.^2))
         if i > start_index
             out[arind-1] = abs(energies[arind-1] - energies[arind])
         end
