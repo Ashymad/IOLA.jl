@@ -2,3 +2,7 @@ name = "IOLA"
 uuid = "0c50908a-3f8b-11e9-147d-b7c868edd7fa"
 authors = ["Szymon Mikulicz <szymon.mikulicz@posteo.net>"]
 version = "0.1.0"
+
+[deps]
+MDCT = "1ba2fcf6-b438-57ac-94bf-052622d64a91"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"

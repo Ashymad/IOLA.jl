@@ -1,7 +1,7 @@
 module IOLA
 using Statistics
 
-export energyDiff, analyze
+export energyDiff, analyze, transforms
 
 struct Codec
     transform::Function
@@ -12,8 +12,6 @@ end
 
 module transforms
 import MDCT
-
-export STMDCT
 
 function STMDCT(signal::AbstractVector{SignalType},
                 window::AbstractVector{SignalType},
