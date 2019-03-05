@@ -1,0 +1,4 @@
+name = "IOLA"
+uuid = "0c50908a-3f8b-11e9-147d-b7c868edd7fa"
+authors = ["Szymon Mikulicz <szymon.mikulicz@posteo.net>"]
+version = "0.1.0"
