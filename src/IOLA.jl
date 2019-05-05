@@ -15,7 +15,8 @@ import MDCT
 
 function STMDCT(signal::AbstractVector{SignalType},
                 window::AbstractVector{SignalType},
-                hop::Integer=div(length(window),2)) where SignalType <: Number
+                hop::Integer=div(length(window),2),
+                mdct_fn::Function=MDCT.mdct) where SignalType <: Number
     winlen = length(window)
     siglen = length(signal)
     N = div(siglen, hop)-div(winlen, hop)+1
@@ -26,7 +27,7 @@ function STMDCT(signal::AbstractVector{SignalType},
     
     for i = 1:N
         sind = (i-1)*hop+1
-        out[:,i] = MDCT.mdct(signal_padded[sind:(sind+winlen-1)].*window)
+        out[:,i] = mdct_fn(signal_padded[sind:(sind+winlen-1)].*window)
     end
     return out
 end
