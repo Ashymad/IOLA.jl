@@ -55,11 +55,12 @@ function STMDCT(signal::AbstractVector{SignalType},
     out = zeros(div(winlen,2), N)
     pad = div(siglen - (N-1)*hop - winlen, 2)
 
-    signal_padded = [zeros(SignalType, pad); signal; zeros(SignalType, pad+1)]
+    signal_padded = zeros(SignalType, 2*pad + siglen + 1)
+    signal_padded[pad+1:siglen+pad] = signal
     
     for i = 1:N
         sind = (i-1)*hop+1
-        out[:,i] = mdct_fn(signal_padded[sind:(sind+winlen-1)].*window)
+        @views out[:,i] = mdct_fn(signal_padded[sind:(sind+winlen-1)].*window)
     end
     return out
 end
@@ -74,8 +75,8 @@ function energyDiff(signal::AbstractVector{SignalType}, transform::Function,
     out = zeros(N-1)
     for i = start_index:end_index
         arind = i-start_index+1
-        segment = transform(signal[i:(i+segment_length-1)])
-        energies[arind] = mean(abs.(log10.(abs.(segment))))
+        segment = transform(view(signal, i:(i+segment_length-1)))
+        energies[arind] = utils.fast_sum_abs_log10_abs!(segment)./segment_length
         if i > start_index
             out[arind-1] = abs(energies[arind-1] - energies[arind])
         end
