@@ -12,34 +12,32 @@ end
 
 module utils
 
-function fast_sum_abs_log10_abs!(vector::AbstractVector{SignalType}) where SignalType <: Number
-    N = length(vector)
+function fast_sum_abs_log10_abs!(array::AbstractArray{SignalType}) where SignalType <: Number
+    N = length(array)
     while N > 1
         for it = 1:2:N
-            a1 = vector[it]
+            a1 = array[it]
             if a1 == 0; return Inf; end
             it2 = div(it+1,2)
             if it+1 <= N
-                a2 = vector[it+1]
+                a2 = array[it+1]
                 if a2 == 0; return Inf; end
-                na = 0
                 if ((a1 >= 1 || a1 <= -1) && (a2 >= 1 || a2 <= -1)) ||
                     (a1 < 1  && a1 > -1 && a2 > -1 && a2 < 1)
-                    na = a1*a2
+                    a1 *= a2
                 else
-                    na = a1/a2
+                    a1 /= a2
                 end
-                if na == 0
-                    return sum(abs.(log10.(abs.(vector[1:it2-1])))) + sum(abs.(log10.(abs.(vector[it:N]))))
+                if a1 == 0
+                    return sum(abs.(log10.(abs.(view(array,1:it2-1))))) .+
+                        sum(abs.(log10.(abs.(view(array,it:N)))))
                 end
-                vector[it2] = na
-            else
-                vector[it2] = a1
             end
+            array[it2] = a1
         end
         N = div(N+1,2)
     end
-    return abs(log10(abs(vector[1])))
+    return abs(log10(abs(array[1])))
 end
 
 end
