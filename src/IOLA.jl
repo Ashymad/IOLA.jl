@@ -1,16 +1,50 @@
 module IOLA
 using Statistics
 
-export energyDiff, analyze, transforms
+export analyze, Codec
 
-struct Codec
-    transform::Function
+module Codec
+import MDCT, DSP, ...IOLA
+
+module Transform
+@enum TransformType begin
+    MDCT = 1
+end
+end
+
+struct CodecParams
+    transform::Transform.TransformType
     window::Function
     length::Integer
     hop::Integer
 end
 
-module utils
+@enum CodecType begin
+    MP3 = 1
+end
+
+function getParams(type::CodecType)
+    return Dict{CodecType, CodecParams}(
+        MP3 => CodecParams(Transform.MDCT,
+                   DSP.Windows.cosine,
+                   1152,
+                   576)
+    )[type]
+end
+
+function getTransformFunction(params::CodecParams)
+    if params.transform == Transform.MDCT
+        win = params.window(params.length)
+        mdct_fn = MDCT.plan_mdct(win)
+        return IOLA.Utils.shorttermify(mdct_fn, win, params.hop)
+    else
+        error("Transform $(params.transform) not yet implemented!")
+    end
+end
+
+end
+
+module Utils
 
 function fast_sum_abs_log10_abs!(array::AbstractArray{SignalType}) where SignalType <: Number
     N = length(array)
@@ -39,29 +73,25 @@ function fast_sum_abs_log10_abs!(array::AbstractArray{SignalType}) where SignalT
     return abs(log10(array[1]))
 end
 
-end
-
-module transforms
-import MDCT
-
-function STMDCT(signal::AbstractVector{SignalType},
-                window::AbstractVector{SignalType},
-                hop::Integer=div(length(window),2),
-                mdct_fn::Function=MDCT.mdct) where SignalType <: Number
+function shorttermify(fun::Function, window::AbstractVector{SignalType},
+                      hop::Integer) where SignalType <: Number
     winlen = length(window)
-    siglen = length(signal)
-    N = div(siglen, hop)-div(winlen, hop)+1
-    out = zeros(div(winlen,2), N)
-    pad = div(siglen - (N-1)*hop - winlen, 2)
+    outlen = length(fun(window))
 
-    signal_padded = zeros(SignalType, 2*pad + siglen + 1)
-    signal_padded[pad+1:siglen+pad] = signal
-    
-    for i = 1:N
-        sind = (i-1)*hop+1
-        @views out[:,i] = mdct_fn(signal_padded[sind:(sind+winlen-1)].*window)
+    return function(signal::AbstractVector{SignalType})
+        siglen = length(signal)
+        N = div(siglen, hop)-div(winlen, hop)+1
+        pad = div(siglen - (N-1)*hop - winlen, 2)
+        signal_padded = zeros(SignalType, 2*pad + siglen + 1)
+        signal_padded[pad+1:siglen+pad] = signal
+        out = zeros(outlen, N)
+
+        for i = 1:N
+            sind = (i-1)*hop+1
+            @views out[:,i] = fun(signal_padded[sind:(sind+winlen-1)].*window)
+        end
+        return out
     end
-    return out
 end
 
 end
@@ -75,7 +105,7 @@ function energyDiff(signal::AbstractVector{SignalType}, transform::Function,
     for i = start_index:end_index
         arind = i-start_index+1
         segment = transform(view(signal, i:(i+segment_length-1)))
-        energies[arind] = utils.fast_sum_abs_log10_abs!(segment)./segment_length
+        energies[arind] = Utils.fast_sum_abs_log10_abs!(segment)./segment_length
         if i > start_index
             out[arind-1] = abs(energies[arind-1] - energies[arind])
         end
@@ -96,5 +126,5 @@ function analyze(signal::AbstractVector{SignalType}, transform::Function,
     end
     return out
 end
-    
+
 end
