@@ -16,28 +16,27 @@ function fast_sum_abs_log10_abs!(array::AbstractArray{SignalType}) where SignalT
     N = length(array)
     while N > 1
         for it = 1:2:N
-            a1 = array[it]
+            a1 = abs(array[it])
             if a1 == 0; return Inf; end
             it2 = div(it+1,2)
             if it+1 <= N
-                a2 = array[it+1]
+                a2 = abs(array[it+1])
                 if a2 == 0; return Inf; end
-                if ((a1 >= 1 || a1 <= -1) && (a2 >= 1 || a2 <= -1)) ||
-                    (a1 < 1  && a1 > -1 && a2 > -1 && a2 < 1)
+                if (a1 >= 1 && a2 >= 1) || (a1 < 1 && a2 < 1)
                     a1 *= a2
                 else
                     a1 /= a2
                 end
-                if a1 == 0
-                    return sum(abs.(log10.(abs.(view(array,1:it2-1))))) .+
-                        sum(abs.(log10.(abs.(view(array,it:N)))))
+                if a1 == 0 || a1 == Inf
+                    return sum(abs.(log10.(view(array,1:it2-1)))) .+
+                        sum(abs.(log10.(view(array,it:N))))
                 end
             end
             array[it2] = a1
         end
         N = div(N+1,2)
     end
-    return abs(log10(abs(array[1])))
+    return abs(log10(array[1]))
 end
 
 end
