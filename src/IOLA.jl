@@ -35,7 +35,11 @@ end
 function getTransformFunction(params::CodecParams)
     if params.transform == Transform.MDCT
         win = params.window(params.length)
-        mdct_fn = MDCT.plan_mdct(win)
+        mdct_fn = let mdct_plan = MDCT.plan_mdct(win)
+            function(X::AbstractArray{T}) where T<:Number
+                mdct_plan*X
+            end
+        end
         return IOLA.Utils.shorttermify(mdct_fn, win, params.hop)
     else
         error("Transform $(params.transform) not yet implemented!")
@@ -75,22 +79,21 @@ end
 
 function shorttermify(fun::Function, window::AbstractVector{SignalType},
                       hop::Integer) where SignalType <: Number
-    winlen = length(window)
-    outlen = length(fun(window))
+    return let winlen = length(window), outlen = length(fun(window))
+        function(signal::AbstractVector{SignalType})
+            siglen = length(signal)
+            N = div(siglen, hop)-div(winlen, hop)+1
+            pad = div(siglen - (N-1)*hop - winlen, 2)
+            signal_padded = zeros(SignalType, 2*pad + siglen + 1)
+            signal_padded[pad+1:siglen+pad] = signal
+            out = zeros(outlen, N)
 
-    return function(signal::AbstractVector{SignalType})
-        siglen = length(signal)
-        N = div(siglen, hop)-div(winlen, hop)+1
-        pad = div(siglen - (N-1)*hop - winlen, 2)
-        signal_padded = zeros(SignalType, 2*pad + siglen + 1)
-        signal_padded[pad+1:siglen+pad] = signal
-        out = zeros(outlen, N)
-
-        for i = 1:N
-            sind = (i-1)*hop+1
-            @views out[:,i] = fun(signal_padded[sind:(sind+winlen-1)].*window)
+            for i = 1:N
+                sind = (i-1)*hop+1
+                @views out[:,i] = fun(signal_padded[sind:(sind+winlen-1)].*window)
+            end
+            return out
         end
-        return out
     end
 end
 
