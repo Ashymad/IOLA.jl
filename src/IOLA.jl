@@ -21,15 +21,26 @@ end
 
 @enum CodecType begin
     MP3 = 1
+    AAC = 2
+    AC3 = 3
+    OGG = 4
+    WMA = 5
 end
 
 function getParams(type::CodecType)
-    return Dict{CodecType, CodecParams}(
-        MP3 => CodecParams(Transform.MDCT,
-                   DSP.Windows.cosine,
-                   1152,
-                   576)
-    )[type]
+    return if type == MP3
+        CodecParams(Transform.MDCT,
+                    DSP.Windows.cosine,
+                    1152,
+                    div(1152,2))
+    elseif type == AAC
+        CodecParams(Transform.MDCT,
+                    (n) -> IOLA.Windows.KBD(n, 4),
+                    2048,
+                    div(2048, 2))
+    else
+        error("Codec $type not yet implemented");
+    end
 end
 
 function getTransformFunction(params::CodecParams)
@@ -44,6 +55,25 @@ function getTransformFunction(params::CodecParams)
     else
         error("Transform $(params.transform) not yet implemented!")
     end
+end
+
+end
+
+module Windows
+import DSP
+
+function KBD(n::Integer, α::Real)
+    if isodd(n)
+        throw(ArgumentError("KBD window length must be even"))
+    end
+    N = div(n, 2)
+    kais = DSP.Windows.kaiser(N+1, α)
+    out = zeros(n)
+    out[n] = (out[1] = kais[1])
+    @inbounds for i = 2:N
+        out[n+1-i] = (out[i] = kais[i] + out[i-1])
+    end
+    return sqrt.(out./out[N])
 end
 
 end
