@@ -38,6 +38,11 @@ function getParams(type::CodecType)
                     (n) -> IOLA.Windows.KBD(n, 4),
                     2048,
                     div(2048, 2))
+    elseif type == OGG
+        CodecParams(Transform.MDCT,
+                    IOLA.Windows.slope,
+                    2048,
+                    div(2048, 2))
     else
         error("Codec $type not yet implemented");
     end
@@ -74,6 +79,14 @@ function KBD(n::Integer, α::Real)
         out[n+1-i] = (out[i] = kais[i] + out[i-1])
     end
     return sqrt.(out./out[N])
+end
+
+function slope(n::Integer)
+    out = zeros(n)
+    for i = 1:length(out)
+        out[i] = sin(0.5π*sin(π/n*(i-0.5))^2)
+    end
+    return out
 end
 
 end
