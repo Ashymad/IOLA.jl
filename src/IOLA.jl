@@ -43,6 +43,17 @@ function getParams(type::CodecType)
                     IOLA.Windows.slope,
                     2048,
                     div(2048, 2))
+    elseif type == AC3
+        CodecParams(Transform.MDCT,
+                    (n) -> IOLA.Windows.KBD(n, 5),
+                    512,
+                    div(512, 2))
+    elseif type == WMA
+        CodecParams(Transform.MDCT,
+                    DSP.Windows.cosine,
+                    4096,
+                    div(4096, 2))
+                    
     else
         error("Codec $type not yet implemented");
     end
