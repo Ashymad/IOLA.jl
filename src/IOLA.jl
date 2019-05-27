@@ -32,7 +32,7 @@ function getParams(type::CodecType)
         CodecParams(Transform.MDCT,
                     DSP.Windows.cosine,
                     1152,
-                    div(1152,2))
+                    div(1152, 2))
     elseif type == AAC
         CodecParams(Transform.MDCT,
                     (n) -> IOLA.Windows.KBD(n, 4),
@@ -93,11 +93,7 @@ function KBD(n::Integer, α::Real)
 end
 
 function slope(n::Integer)
-    out = zeros(n)
-    for i = 1:length(out)
-        out[i] = sin(0.5π*sin(π/n*(i-0.5))^2)
-    end
-    return out
+    return sin.(0.5π.*sin.(π/n.*((1:n).-0.5)).^2)
 end
 
 end
