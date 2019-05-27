@@ -173,15 +173,15 @@ end
 function analyze(signal::AbstractVector{SignalType}, transform::Function,
                  segment_length::Integer, overlap::Integer) where SignalType <: Number
     siglen = length(signal)
-    N = div(siglen-overlap, segment_length)
-    out = zeros(N, 2)
-    Threads.@threads for i = 1:N
-        sind = (i-1)*segment_length+1
-        segment_diffs = energyDiff(signal, transform, segment_length, sind, sind+overlap)
-        segment_diffs = (segment_diffs.-mean(segment_diffs))./std(segment_diffs)
-        out[i, :] = [findmax(segment_diffs)...]
+    return let N = div(siglen-overlap, segment_length), out = zeros(N, 2)
+        Threads.@threads for i = 1:N
+            sind = (i-1)*segment_length+1
+            segment_diffs = energyDiff(signal, transform, segment_length, sind, sind+overlap)
+            segment_diffs = (segment_diffs.-mean(segment_diffs))./std(segment_diffs)
+            out[i, :] = [findmax(segment_diffs)...]
+        end
+        out
     end
-    return out
 end
 
 end
