@@ -27,7 +27,7 @@ end
     WMA = 5
 end
 
-function getParams(type::CodecType)
+function getparams(type::CodecType)
     return if type == MP3
         CodecParams(Transform.MDCT,
                     DSP.Windows.cosine,
@@ -59,7 +59,7 @@ function getParams(type::CodecType)
     end
 end
 
-function getTransformFunction(params::CodecParams)
+function gettransform(params::CodecParams)
     if params.transform == Transform.MDCT
         win = params.window(params.length)
         mdct_fn = let mdct_plan = MDCT.plan_mdct(win)
@@ -99,6 +99,9 @@ end
 end
 
 module Utils
+
+using Statistics
+export findperiod, radiusofmean
 
 function fast_sum_abs_log10_abs!(array::AbstractArray{SignalType}) where SignalType <: Number
     N = length(array)
@@ -147,9 +150,30 @@ function shorttermify(fun::Function, window::AbstractVector{SignalType},
     end
 end
 
+function findperiod(vector::AbstractVector{T},
+                    domain::AbstractVector) where T<:Number
+    mod_val = typemax(T)
+    p_min = 0
+    for p in domain
+        per = mod.(vector, p)
+        val = std(per; corrected=false)/mean(per)
+        if val <= mod_val
+            mod_val = val
+            p_min = p
+        end
+    end
+    return p_min
 end
 
-function energyDiff(signal::AbstractVector{SignalType}, transform::Function,
+function radiusofmean(radiuses::AbstractVector,
+                      angles::AbstractVector)
+    M = length(radiuses)
+    sqrt(sum(radiuses.*sin.(angles))^2 + sum(radiuses.*cos.(angles))^2)/M
+end
+
+end
+
+function energydiff(signal::AbstractVector{SignalType}, transform::Function,
                     segment_length::Integer, start_index::Integer,
                     end_index::Integer) where SignalType <: Number
     N = end_index-start_index+1
@@ -167,13 +191,16 @@ function energyDiff(signal::AbstractVector{SignalType}, transform::Function,
 end
 
 function analyze(signal::AbstractVector{SignalType}, transform::Function,
-                 segment_length::Integer, overlap::Integer) where SignalType <: Number
+                 segment_length::Integer, overlap::Integer,
+                 normalize::Bool = false) where SignalType <: Number
     siglen = length(signal)
     return let N = div(siglen-overlap, segment_length), out = zeros(N, 2)
         Threads.@threads for i = 1:N
             sind = (i-1)*segment_length+1
-            segment_diffs = energyDiff(signal, transform, segment_length, sind, sind+overlap)
-            segment_diffs = (segment_diffs.-mean(segment_diffs))./std(segment_diffs)
+            segment_diffs = energydiff(signal, transform, segment_length, sind, sind+overlap)
+            if normalize 
+                segment_diffs = (segment_diffs.-mean(segment_diffs))./std(segment_diffs)
+            end
             out[i, :] = [findmax(segment_diffs)...]
         end
         out
