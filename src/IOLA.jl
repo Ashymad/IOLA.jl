@@ -166,9 +166,11 @@ function findperiod(vector::AbstractVector{T},
 end
 
 function radiusofmean(radiuses::AbstractVector,
-                      angles::AbstractVector)
+                      angles::AbstractVector,
+                      na_rm = true)
     M = length(radiuses)
-    sqrt(sum(radiuses.*sin.(angles))^2 + sum(radiuses.*cos.(angles))^2)/M
+    idxs = na_rm ? isfinite.(radiuses) : Colon()
+    sqrt(sum(radiuses[idxs].*sin.(angles[idxs]))^2 + sum(radiuses[idxs].*cos.(angles[idxs]))^2)/M
 end
 
 end
